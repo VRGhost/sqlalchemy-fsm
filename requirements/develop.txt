@@ -4,7 +4,7 @@ pytest-pep8>=1.0.6
 pytest-runner>=3.0
 bump2version>=0.5.7
 m2r>=0.1.12
-coverage==6.2  # Until this is fixed: https://bitbucket.org/ned/coveragepy/issues/578/incomplete-file-path-in-xml-report (breaks codeclimate)
+coverage==6.3  # Until this is fixed: https://bitbucket.org/ned/coveragepy/issues/578/incomplete-file-path-in-xml-report (breaks codeclimate)
 pytest-benchmark>=3.1.1
 
 -r production.txt
