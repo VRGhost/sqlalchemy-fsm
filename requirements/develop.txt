@@ -1,4 +1,4 @@
-black
+black==21.12b0
 bump2version
 coverage
 flake8
