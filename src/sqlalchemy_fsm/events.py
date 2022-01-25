@@ -1,8 +1,8 @@
-from functools import wraps, partial
-
-from sqlalchemy.orm.instrumentation import register_class
+from functools import partial
 
 import sqlalchemy.orm.events
+
+from sqlalchemy.orm.instrumentation import register_class
 
 
 @sqlalchemy.event.dispatcher

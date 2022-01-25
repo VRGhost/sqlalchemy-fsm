@@ -1,13 +1,7 @@
-import unittest
-import sqlalchemy
 import pytest
+import sqlalchemy
 
 from sqlalchemy_fsm import FSMField, transition
-from sqlalchemy_fsm.exc import (
-    SetupError,
-    PreconditionError,
-    InvalidSourceStateError,
-)
 
 from .conftest import Base
 

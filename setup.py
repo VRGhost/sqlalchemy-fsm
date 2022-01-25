@@ -19,7 +19,6 @@ setuptools.setup(
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
         "Topic :: Database",
     ],
@@ -30,6 +29,7 @@ setuptools.setup(
         "SQLAlchemy>=1.0.0",
         "six>=1.10.0",
     ],
+    python_requires=">=3.6",
     setup_requires=["pytest-runner"],
     tests_require=["pytest"],
 )

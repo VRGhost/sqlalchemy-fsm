@@ -1,9 +1,14 @@
-pytest>=3.3.2
+black
+bump2version>=0.5.7
+coverage>=6.2
+flake8
+flake8-bugbear
+flake8-import-order
+m2r>=0.1.12
+pep8-naming
+pytest-benchmark>=3.1.1
 pytest-cov>=2.5.1
 pytest-runner>=3.0
-bump2version>=0.5.7
-m2r>=0.1.12
-coverage>=6.2
-pytest-benchmark>=3.1.1
+pytest>=3.3.2
 
 -r production.txt

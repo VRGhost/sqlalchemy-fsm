@@ -2,11 +2,7 @@ import pytest
 import sqlalchemy
 
 from sqlalchemy_fsm import FSMField, transition
-from sqlalchemy_fsm.exc import (
-    SetupError,
-    PreconditionError,
-    InvalidSourceStateError,
-)
+from sqlalchemy_fsm.exc import SetupError
 
 from .conftest import Base
 
@@ -185,19 +181,19 @@ class NullSource(Base):
     status = sqlalchemy.Column(FSMField, nullable=True)
 
     @transition(source=None, target="published")
-    def pubFromNone(self):
+    def pub_from_none(self):
         pass
 
     @transition(source=None, target="new")
-    def newFromNone(self):
+    def new_from_none(self):
         pass
 
     @transition(source=["new", None], target="published")
-    def pubFromEither(self):
+    def pub_from_either(self):
         pass
 
     @transition(source="*", target="end")
-    def endFromAll(self):
+    def end_from_all(self):
         pass
 
 
@@ -208,21 +204,21 @@ class TestNullSource(object):
 
     def test_null_to_end(self, model):
         assert model.status is None
-        model.endFromAll.set()
+        model.end_from_all.set()
         assert model.status == "end"
 
     def test_null_pub_end(self, model):
         assert model.status is None
-        model.pubFromNone.set()
+        model.pub_from_none.set()
         assert model.status == "published"
-        model.endFromAll.set()
+        model.end_from_all.set()
         assert model.status == "end"
 
     def test_null_new_pub_end(self, model):
         assert model.status is None
-        model.newFromNone.set()
+        model.new_from_none.set()
         assert model.status == "new"
-        model.pubFromEither.set()
+        model.pub_from_either.set()
         assert model.status == "published"
-        model.endFromAll.set()
+        model.end_from_all.set()
         assert model.status == "end"

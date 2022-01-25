@@ -2,20 +2,18 @@
 Non-meta objects that are bound to a particular table & sqlalchemy instance.
 """
 
-import warnings
-
 import inspect as py_inspect
-from functools import partial
+import warnings
 
 from sqlalchemy import inspect as sqla_inspect
 
 
-from . import exc, util, meta, events, cache
+from . import cache, events, exc, meta
 from .sqltypes import FSMField
 
 
-@cache.weakValueCache
-def COLUMN_CACHE(table_class):
+@cache.weak_value_cache
+def column_cache(table_class):
     fsm_fields = [
         col
         for col in sqla_inspect(table_class).columns
@@ -44,7 +42,7 @@ class SqlAlchemyHandle(object):
     def __init__(self, table_class, table_record_instance=None):
         self.table_class = table_class
         self.record = table_record_instance
-        self.fsm_column = COLUMN_CACHE.getValue(table_class)
+        self.fsm_column = column_cache.get_value(table_class)
         self.column_name = self.fsm_column.name
 
         if table_record_instance:
@@ -162,14 +160,14 @@ class BoundFSMFunction(BoundFSMBase):
 class TansitionStateArtithmetics(object):
     """Helper class aiding in merging transition state params."""
 
-    def __init__(self, metaA, metaB):
-        self.metaA = metaA
-        self.metaB = metaB
+    def __init__(self, meta_a, meta_b):
+        self.meta_a = meta_a
+        self.meta_b = meta_b
 
     def source_intersection(self):
         """Returns intersected sources meta sources."""
-        sources_a = self.metaA.sources
-        sources_b = self.metaB.sources
+        sources_a = self.meta_a.sources
+        sources_b = self.meta_b.sources
 
         if "*" in sources_a:
             return sources_b
@@ -181,8 +179,8 @@ class TansitionStateArtithmetics(object):
             return False
 
     def target_intersection(self):
-        target_a = self.metaA.target
-        target_b = self.metaB.target
+        target_a = self.meta_a.target
+        target_b = self.meta_b.target
         if target_a == target_b:
             # Also covers the case when both are None
             out = target_a
@@ -196,18 +194,18 @@ class TansitionStateArtithmetics(object):
 
     def joint_conditions(self):
         """Returns union of both conditions."""
-        return self.metaA.conditions + self.metaB.conditions
+        return self.meta_a.conditions + self.meta_b.conditions
 
     def joint_args(self):
-        return self.metaA.extra_call_args + self.metaB.extra_call_args
+        return self.meta_a.extra_call_args + self.meta_b.extra_call_args
 
 
-@cache.dictCache
-def InheritedBoundClasses(key):
+@cache.dict_cache
+def inherited_bound_classes(key):
 
     (child_cls, parent_meta) = key
 
-    def _getSubTransitions(child_cls):
+    def _get_sub_transitions(child_cls):
         sub_handlers = []
         for name in dir(child_cls):
             try:
@@ -219,10 +217,10 @@ def InheritedBoundClasses(key):
                 continue
         return sub_handlers
 
-    def _getBoundSubMetas(child_cls, sub_transitions, parent_meta):
+    def _get_bound_sub_metas(child_cls, sub_transitions, parent_meta):
         out = []
 
-        for (name, transition) in sub_transitions:
+        for (_name, transition) in sub_transitions:
             sub_meta = transition._sa_fsm_meta
             arithmetics = TansitionStateArtithmetics(parent_meta, sub_meta)
 
@@ -264,9 +262,9 @@ def InheritedBoundClasses(key):
             "_sa_fsm_sqlalchemy_metas": (),
         },
     )
-    sub_transitions = _getSubTransitions(out_cls)
+    sub_transitions = _get_sub_transitions(out_cls)
     out_cls._sa_fsm_sqlalchemy_metas = tuple(
-        _getBoundSubMetas(out_cls, sub_transitions, parent_meta)
+        _get_bound_sub_metas(out_cls, sub_transitions, parent_meta)
     )
 
     return out_cls
@@ -278,7 +276,7 @@ class BoundFSMClass(BoundFSMBase):
 
     def __init__(self, meta, sqlalchemy_handle, child_cls, extra_call_args):
         super(BoundFSMClass, self).__init__(meta, sqlalchemy_handle, extra_call_args)
-        child_cls = InheritedBoundClasses.getValue((child_cls, meta))
+        child_cls = inherited_bound_classes.get_value((child_cls, meta))
         child_object = child_cls()
         child_object._sa_fsm_sqlalchemy_handle = sqlalchemy_handle
         self.bound_sub_metas = [
@@ -286,7 +284,7 @@ class BoundFSMClass(BoundFSMBase):
             for (meta, set_fn) in child_object._sa_fsm_sqlalchemy_metas
         ]
 
-    @cache.caching_attr
+    @cache.CachingAttr
     def target_state(self):
         targets = tuple(set(meta.meta.target for meta in self.bound_sub_metas))
         assert len(targets) == 1, "One and just one target expected"

@@ -4,9 +4,8 @@ import sqlalchemy
 
 from sqlalchemy_fsm import FSMField, transition
 from sqlalchemy_fsm.exc import (
-    SetupError,
-    PreconditionError,
     InvalidSourceStateError,
+    PreconditionError,
 )
 
 from .conftest import Base
@@ -54,7 +53,7 @@ class MultiSourceBlogPost(Base):
         self.side_effect = "deleted"
 
     @transition(target="published", conditions=[val_contains_condition([1, 2])])
-    class publish(object):
+    class publish(object):  # noqa: N801
         @transition(source="new", conditions=[val_eq_condition(1)])
         def do_one(self, instance, value):
             instance.side_effect = "did_one"
@@ -72,7 +71,7 @@ class MultiSourceBlogPost(Base):
             instance.side_effect = "do_publish_loop: {}".format(value)
 
     @transition(target="published", source=["new", "something"])
-    class noPreFilterPublish(object):
+    class noPreFilterPublish(object):  # noqa: N801
         @transition(source="*", conditions=[three_argument_condition(1, 2, 3)])
         def do_three_arg_mk1(self, instance, val1, val2, val3):
             instance.side_effect = "did_three_arg_mk1::{}".format([val1, val2, val3])

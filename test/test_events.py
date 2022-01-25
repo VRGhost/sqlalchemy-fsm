@@ -17,11 +17,11 @@ class EventModel(Base):
         super(EventModel, self).__init__(*args, **kwargs)
 
     @sqlalchemy_fsm.transition(source="*", target="state_a")
-    def stateA(self):
+    def state_a(self):
         pass
 
     @sqlalchemy_fsm.transition(source="*", target="state_b")
-    def stateB(self):
+    def state_b(self):
         pass
 
 
@@ -52,16 +52,16 @@ class TestEventListener(object):
         for handle_name in ("state_a", "state_b", "state_a", "state_a", "state_b"):
             expected_result.append((model.state, handle_name))
             if handle_name == "state_a":
-                handle = model.stateA
+                handle = model.state_a
             else:
-                handle = model.stateB
+                handle = model.state_b
             handle.set()
             assert listener_result == expected_result
 
         # Remove the listener & check that it had an effect
         sqlalchemy.event.remove(EventModel, event_name, on_update)
         # Call the state handle & ensure that listener had not been called.
-        model.stateA.set()
+        model.state_a.set()
         assert listener_result == expected_result
 
     def test_standard_sqlalchemy_events_still_work(self, model, session):
@@ -79,11 +79,11 @@ class TestEventListener(object):
         assert not state_log
         assert not insert_log
 
-        model.stateA.set()
+        model.state_a.set()
         assert len(state_log) == 1
         assert len(insert_log) == 0
 
-        model.stateB.set()
+        model.state_b.set()
         assert len(state_log) == 2
         assert len(insert_log) == 0
 
@@ -93,7 +93,7 @@ class TestEventListener(object):
         assert len(state_log) == 2
         assert len(insert_log) == 1
 
-        model.stateB.set()
+        model.state_b.set()
         assert len(state_log) == 3
         assert len(insert_log) == 1
 
@@ -109,21 +109,21 @@ class TransitionClassEventModel(Base):
         super(TransitionClassEventModel, self).__init__(*args, **kwargs)
 
     @sqlalchemy_fsm.transition(source="*", target="state_a")
-    def stateA(self):
+    def state_a(self):
         pass
 
     @sqlalchemy_fsm.transition(source="*", target="state_b")
-    def stateB(self):
+    def state_b(self):
         pass
 
     @sqlalchemy_fsm.transition(target="state_class")
-    class stateClass(object):
+    class StateClass(object):
         @sqlalchemy_fsm.transition(source="state_a")
-        def fromA(self, instance):
+        def from_a(self, instance):
             instance.side_effect = "from_a"
 
         @sqlalchemy_fsm.transition(source="state_b")
-        def fromB(self, instance):
+        def from_b(self, instance):
             instance.side_effect = "from_b"
 
 
@@ -153,12 +153,12 @@ class TestTransitionClassEvents(object):
         for handle_name in ("state_a", "state_b", "state_a", "state_a", "state_b"):
             expected_result.append(handle_name)
             if handle_name == "state_a":
-                handle = model.stateA
+                handle = model.state_a
             else:
-                handle = model.stateB
+                handle = model.state_b
             handle.set()
             assert listener_result == expected_result
-            model.stateClass.set()
+            model.StateClass.set()
 
             if handle_name == "state_a":
                 expected_side = "from_a"
@@ -173,7 +173,7 @@ class TestTransitionClassEvents(object):
         # Remove the listener & check that it had an effect
         sqlalchemy.event.remove(TransitionClassEventModel, event_name, on_update)
         # Call the state handle & ensure that listener had not been called.
-        model.stateA.set()
+        model.state_a.set()
         assert listener_result == expected_result
 
 
@@ -212,22 +212,22 @@ class TestEventsLeakage(object):
         assert len(tr_cls_result) == 0
         assert len(joint_result) == 0
 
-        event_model.stateA.set()
+        event_model.state_a.set()
         assert len(event_result) == 1
         assert len(tr_cls_result) == 0
         assert len(joint_result) == 1
 
-        event_model.stateB.set()
+        event_model.state_b.set()
         assert len(event_result) == 2
         assert len(tr_cls_result) == 0
         assert len(joint_result) == 2
 
-        tr_cls_model.stateA.set()
+        tr_cls_model.state_a.set()
         assert len(event_result) == 2
         assert len(tr_cls_result) == 1
         assert len(joint_result) == 3
 
-        tr_cls_model.stateA.set()
+        tr_cls_model.state_a.set()
         assert len(event_result) == 2
         assert len(tr_cls_result) == 2
         assert len(joint_result) == 4

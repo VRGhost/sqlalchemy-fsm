@@ -1,18 +1,16 @@
 """ Transition decorator. """
-import warnings
 import inspect as py_inspect
+import warnings
 
-from functools import wraps
-
-from sqlalchemy.orm.interfaces import InspectionAttrInfo
 from sqlalchemy.ext.hybrid import HYBRID_METHOD
+from sqlalchemy.orm.interfaces import InspectionAttrInfo
 
-from . import bound, util, exc, cache
+from . import bound, cache, exc
 from .meta import FSMMeta
 
 
-@cache.dictCache
-def SqlEqualityCache(key):
+@cache.dict_cache
+def sql_equality_cache(key):
     """It takes a bit of time for sqlalchemy to generate these.
 
     So I'm caching them.
@@ -31,9 +29,9 @@ class ClassBoundFsmTransition(object):
         "_sa_fsm_transition_fn",
     )
 
-    def __init__(self, meta, sqla_handle, paylaod_func, ownerCls):
+    def __init__(self, meta, sqla_handle, paylaod_func, owner_cls):
         self._sa_fsm_meta = meta
-        self._sa_fsm_owner_cls = ownerCls
+        self._sa_fsm_owner_cls = owner_cls
         self._sa_fsm_sqla_handle = sqla_handle
         self._sa_fsm_transition_fn = paylaod_func
 
@@ -41,7 +39,7 @@ class ClassBoundFsmTransition(object):
         """Return a SQLAlchemy filter for this particular state."""
         column = self._sa_fsm_sqla_handle.fsm_column
         target = self._sa_fsm_meta.target
-        return SqlEqualityCache.getValue((column, target))
+        return sql_equality_cache.get_value((column, target))
 
     def is_(self, value):
         if isinstance(value, bool):
@@ -60,10 +58,10 @@ class InstanceBoundFsmTransition(object):
         "_sa_fsm_bound_meta",
     )
 
-    def __init__(self, meta, sqla_handle, transition_fn, ownerCls, instance):
+    def __init__(self, meta, sqla_handle, transition_fn, owner_cls, instance):
         self._sa_fsm_meta = meta
         self._sa_fsm_transition_fn = transition_fn
-        self._sa_fsm_owner_cls = ownerCls
+        self._sa_fsm_owner_cls = owner_cls
         self._sa_fsm_self = instance
         self._sa_fsm_bound_meta = meta.get_bound(sqla_handle, transition_fn, ())
 

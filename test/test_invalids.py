@@ -1,7 +1,7 @@
 import pytest
 import sqlalchemy
 
-from sqlalchemy_fsm import FSMField, transition, exc
+from sqlalchemy_fsm import exc, FSMField, transition
 
 
 from .conftest import Base
@@ -64,7 +64,7 @@ def test_transition_raises_on_invalid_state():
     with pytest.raises(NotImplementedError) as err:
 
         @transition(source=42, target="blah")
-        def func():
+        def func1():
             pass
 
     assert "42" in str(err)
@@ -72,7 +72,7 @@ def test_transition_raises_on_invalid_state():
     with pytest.raises(NotImplementedError) as err:
 
         @transition(source="*", target=42)
-        def func():
+        def func2():
             pass
 
     assert "42" in str(err)
@@ -80,7 +80,7 @@ def test_transition_raises_on_invalid_state():
     with pytest.raises(NotImplementedError) as err:
 
         @transition(source=["str", 42], target="blah")
-        def func():
+        def func3():
             pass
 
     assert "42" in str(err)
@@ -104,7 +104,7 @@ class MisconfiguredTransitions(Base):
         pass
 
     @transition(source="*", target="blah")
-    class multi_handler_transition(object):
+    class MultiHandlerTransition(object):
         """The system won't know which transition{1,2} handler to chose."""
 
         @transition()
@@ -116,7 +116,7 @@ class MisconfiguredTransitions(Base):
             pass
 
     @transition(source="*", target="blah")
-    class incompatible_targets(object):
+    class IncompatibleTargets(object):
         """The system won't know which transition{1,2} handler to chose."""
 
         @transition(target="not-blah")
@@ -124,7 +124,7 @@ class MisconfiguredTransitions(Base):
             pass
 
     @transition(source=["src1", "src2"], target="blah")
-    class incompatible_sources(object):
+    class IncompatibleSources(object):
         """The system won't know which transition{1,2} handler to chose."""
 
         @transition(source=["src3", "src4"])
@@ -132,7 +132,7 @@ class MisconfiguredTransitions(Base):
             pass
 
     @transition(source="*", target="blah")
-    class no_conflict_due_to_precondition_arg_count(object):
+    class NoConflictDueToPreconditionArgCount(object):
         @transition(conditions=[lambda self, instance, arg1: True])
         def change_state(self, instance, arg1):
             pass
@@ -155,21 +155,21 @@ class TestMisconfiguredTransitions(object):
 
     def test_multi_transition_handlers(self, model):
         with pytest.raises(exc.SetupError) as err:
-            model.multi_handler_transition.set()
+            model.MultiHandlerTransition.set()
         assert "Can transition with multiple handlers" in str(err)
 
     def test_incompatible_targets(self, model):
         with pytest.raises(exc.SetupError) as err:
-            model.incompatible_targets.set()
+            model.IncompatibleTargets.set()
         assert "are not compatable" in str(err)
 
     def test_incompatable_sources(self, model):
         with pytest.raises(exc.SetupError) as err:
-            model.incompatible_sources.set()
+            model.IncompatibleSources.set()
         assert "are not compatable" in str(err)
 
     def test_no_conflict_due_to_precondition_arg_count(self, model):
-        assert model.no_conflict_due_to_precondition_arg_count.can_proceed()
+        assert model.NoConflictDueToPreconditionArgCount.can_proceed()
 
 
 def test_unexpected_is__type(session):

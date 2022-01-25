@@ -1,4 +1,3 @@
-import gc
 import pytest
 import sqlalchemy
 
@@ -25,7 +24,7 @@ class Benchmarked(Base):
         pass
 
     @sqlalchemy_fsm.transition(target="cls_transition")
-    class cls_move(object):
+    class cls_move(object):  # noqa: N801
         @sqlalchemy_fsm.transition(source="new")
         def from_new(self, instance):
             pass
