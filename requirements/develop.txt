@@ -6,7 +6,7 @@ flake8-bugbear
 flake8-import-order
 pep8-naming
 pytest-benchmark
-pytest-cov
+pytest-cov==3.0.0
 pytest-runner
 pytest
 
