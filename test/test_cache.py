@@ -4,7 +4,6 @@ from sqlalchemy_fsm import cache
 
 
 class AttrCls(object):
-
     def __init__(self, rv_val):
         self._rvVal = rv_val
 
@@ -15,7 +14,6 @@ class AttrCls(object):
 
 
 class TestAttrs(object):
-
     def test_cls(self):
         with pytest.raises(NotImplementedError):
             AttrCls.test

@@ -8,38 +8,37 @@ from tests.conftest import Base
 
 
 class Benchmarked(Base):
-    __tablename__ = 'benchmark_test'
+    __tablename__ = "benchmark_test"
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
     state = sqlalchemy.Column(sqlalchemy_fsm.FSMField)
 
     def __init__(self, *args, **kwargs):
-        self.state = 'new'
+        self.state = "new"
         super(Benchmarked, self).__init__(*args, **kwargs)
 
-    @sqlalchemy_fsm.transition(source='*', target='published')
+    @sqlalchemy_fsm.transition(source="*", target="published")
     def published(self):
         pass
 
-    @sqlalchemy_fsm.transition(source='*', target='hidden')
+    @sqlalchemy_fsm.transition(source="*", target="hidden")
     def hidden(self):
         pass
 
-    @sqlalchemy_fsm.transition(target='cls_transition')
+    @sqlalchemy_fsm.transition(target="cls_transition")
     class cls_move(object):
-
-        @sqlalchemy_fsm.transition(source='new')
+        @sqlalchemy_fsm.transition(source="new")
         def from_new(self, instance):
             pass
 
-        @sqlalchemy_fsm.transition(source='published')
+        @sqlalchemy_fsm.transition(source="published")
         def from_pub(self, instance):
             pass
 
-        @sqlalchemy_fsm.transition(source='hidden')
+        @sqlalchemy_fsm.transition(source="hidden")
         def from_hidden(self, instance):
             pass
 
-        @sqlalchemy_fsm.transition(source='cls_transition')
+        @sqlalchemy_fsm.transition(source="cls_transition")
         def loop(self, instance):
             pass
 
@@ -49,7 +48,6 @@ class Benchmarked(Base):
 
 @pytest.mark.skip
 class TestPerformanceSimple(object):
-
     @pytest.fixture
     def model(self, session):
         out = Benchmarked()
@@ -69,11 +67,9 @@ class TestPerformanceSimple(object):
         assert rv == in_expected_state
 
     def test_cls_selector(self, benchmark):
-        benchmark.pedantic(
-            lambda: Benchmarked.published(), rounds=10000)
+        benchmark.pedantic(lambda: Benchmarked.published(), rounds=10000)
 
     def test_set_performance(self, benchmark, model):
-
         def set_fn():
             """Cycle through two set() ops."""
 
@@ -83,7 +79,6 @@ class TestPerformanceSimple(object):
         benchmark.pedantic(set_fn, rounds=10000)
 
     def test_cls_performance(self, benchmark, model):
-
         def set_fn():
             """Cycle through two set() ops."""
             model.cls_move.set()

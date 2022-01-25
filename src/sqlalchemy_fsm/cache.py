@@ -2,17 +2,18 @@
 
 import weakref
 
+
 class DictCache(object):
     """Generic object that uses dict-like object for caching."""
 
-    __slots__ = ('cache', 'getDefault')
+    __slots__ = ("cache", "getDefault")
 
     def __init__(self, dictObject, getDefault):
         self.cache = dictObject
         self.getDefault = getDefault
 
     def getValue(self, key):
-        """A method is faster than __getitem__""" 
+        """A method is faster than __getitem__"""
         try:
             return self.cache[key]
         except KeyError:
@@ -23,10 +24,7 @@ class DictCache(object):
 
 def weakValueCache(getFunc):
     """A decorator that makes a new DictCache using function provided as value getter"""
-    return DictCache(
-        weakref.WeakValueDictionary(),
-        getFunc
-    )
+    return DictCache(weakref.WeakValueDictionary(), getFunc)
 
 
 def dictCache(getFunc):
@@ -52,7 +50,7 @@ class caching_attr(object):
             out = self.getValueFn(instance)
             self.value = out
         else:
-            raise NotImplementedError('Only works on instances at the moment')
+            raise NotImplementedError("Only works on instances at the moment")
         return out
 
     def __delete__(self, instance):
