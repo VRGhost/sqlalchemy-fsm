@@ -23,7 +23,7 @@ setuptools.setup(
         "Topic :: Database",
     ],
     keywords="sqlalchemy finite state machine fsm",
-    version="2.0.8",
+    version="2.0.9",
     url="https://github.com/VRGhost/sqlalchemy-fsm",
     install_requires=[
         "SQLAlchemy>=1.0.0",
