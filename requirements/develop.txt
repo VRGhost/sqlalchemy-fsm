@@ -1,7 +1,7 @@
 black
 bump2version
 coverage
-flake8
+flake8==4.0.1
 flake8-bugbear
 flake8-import-order
 pep8-naming
