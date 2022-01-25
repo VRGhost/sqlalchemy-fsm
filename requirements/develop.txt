@@ -4,7 +4,7 @@ coverage
 flake8
 flake8-bugbear
 flake8-import-order
-pep8-naming
+pep8-naming==0.12.1
 pytest-benchmark
 pytest-cov
 pytest-runner
