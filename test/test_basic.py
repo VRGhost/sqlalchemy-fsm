@@ -8,7 +8,7 @@ from sqlalchemy_fsm.exc import (
     InvalidSourceStateError,
 )
 
-from tests.conftest import Base
+from .conftest import Base
 
 
 class BlogPost(Base):

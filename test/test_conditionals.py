@@ -9,7 +9,7 @@ from sqlalchemy_fsm.exc import (
     InvalidSourceStateError,
 )
 
-from tests.conftest import Base
+from .conftest import Base
 
 
 def condition_func(instance):

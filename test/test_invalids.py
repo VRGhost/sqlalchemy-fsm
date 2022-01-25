@@ -4,7 +4,7 @@ import sqlalchemy
 from sqlalchemy_fsm import FSMField, transition, exc
 
 
-from tests.conftest import Base
+from .conftest import Base
 
 
 class NotFsm(Base):

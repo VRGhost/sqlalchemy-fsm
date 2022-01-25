@@ -4,7 +4,7 @@ import sqlalchemy.event
 
 import sqlalchemy_fsm
 
-from tests.conftest import Base
+from .conftest import Base
 
 
 class EventModel(Base):

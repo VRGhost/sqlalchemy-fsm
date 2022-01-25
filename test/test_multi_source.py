@@ -9,7 +9,7 @@ from sqlalchemy_fsm.exc import (
     InvalidSourceStateError,
 )
 
-from tests.conftest import Base
+from .conftest import Base
 
 
 def val_eq_condition(expected_value):

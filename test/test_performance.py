@@ -4,7 +4,7 @@ import sqlalchemy
 
 import sqlalchemy_fsm
 
-from tests.conftest import Base
+from .conftest import Base
 
 
 class Benchmarked(Base):
