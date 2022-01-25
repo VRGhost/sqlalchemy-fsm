@@ -2,20 +2,18 @@
 Non-meta objects that are bound to a particular table & sqlalchemy instance.
 """
 
-import warnings
-
 import inspect as py_inspect
-from functools import partial
+import warnings
 
 from sqlalchemy import inspect as sqla_inspect
 
 
-from . import exc, util, meta, events, cache
+from . import cache, events, exc, meta
 from .sqltypes import FSMField
 
 
-@cache.weakValueCache
-def COLUMN_CACHE(table_class):
+@cache.weak_value_cache
+def column_cache(table_class):
     fsm_fields = [
         col
         for col in sqla_inspect(table_class).columns
@@ -23,12 +21,10 @@ def COLUMN_CACHE(table_class):
     ]
 
     if len(fsm_fields) == 0:
-        raise exc.SetupError('No FSMField found in model')
+        raise exc.SetupError("No FSMField found in model")
     elif len(fsm_fields) > 1:
         raise exc.SetupError(
-            'More than one FSMField found in model ({})'.format(
-                fsm_fields
-            )
+            "More than one FSMField found in model ({})".format(fsm_fields)
         )
     return fsm_fields[0]
 
@@ -36,14 +32,17 @@ def COLUMN_CACHE(table_class):
 class SqlAlchemyHandle(object):
 
     __slots__ = (
-        "table_class", "record", "fsm_column",
-        "dispatch", "column_name",
+        "table_class",
+        "record",
+        "fsm_column",
+        "dispatch",
+        "column_name",
     )
 
     def __init__(self, table_class, table_record_instance=None):
         self.table_class = table_class
         self.record = table_record_instance
-        self.fsm_column = COLUMN_CACHE.getValue(table_class)
+        self.fsm_column = column_cache.get_value(table_class)
         self.column_name = self.fsm_column.name
 
         if table_record_instance:
@@ -65,17 +64,10 @@ class BoundFSMBase(object):
 
     @property
     def current_state(self):
-        return getattr(
-            self.sqla_handle.record,
-            self.sqla_handle.column_name
-        )
+        return getattr(self.sqla_handle.record, self.sqla_handle.column_name)
 
     def transition_possible(self):
-        return (
-            '*' in self.meta.sources
-        ) or (
-            self.current_state in self.meta.sources
-        )
+        return ("*" in self.meta.sources) or (self.current_state in self.meta.sources)
 
 
 class BoundFSMFunction(BoundFSMBase):
@@ -83,10 +75,13 @@ class BoundFSMFunction(BoundFSMBase):
     __slots__ = BoundFSMBase.__slots__ + ("set_func", "my_args")
 
     def __init__(self, meta, sqla_handle, set_func, extra_call_args):
-        super(BoundFSMFunction, self).__init__(meta, sqla_handle, extra_call_args)
+        super().__init__(meta, sqla_handle, extra_call_args)
         self.set_func = set_func
-        self.my_args = self.meta.extra_call_args + self.extra_call_args + \
-            (self.sqla_handle.record, )
+        self.my_args = (
+            self.meta.extra_call_args
+            + self.extra_call_args
+            + (self.sqla_handle.record,)
+        )
 
     def get_call_iface_error(self, fn, args, kwargs):
         """Returhs 'Type' error describing function's api mismatch (if one exists)
@@ -125,8 +120,7 @@ class BoundFSMFunction(BoundFSMBase):
             # Check that the function itself can be called with these args
             err = self.get_call_iface_error(self.set_func, args, kwargs)
             if err:
-                warnings.warn(
-                    "Failure to validate handler call args: {}".format(err))
+                warnings.warn("Failure to validate handler call args: {}".format(err))
                 # Can not map call args to handler's
                 out = False
                 if conditions:
@@ -151,14 +145,8 @@ class BoundFSMFunction(BoundFSMBase):
         )
 
         self.set_func(*args, **kwargs)
-        setattr(
-            sqla_target,
-            self.sqla_handle.column_name,
-            new_state
-        )
-        self.sqla_handle.dispatch.after_state_change(
-            source=old_state, target=new_state
-        )
+        setattr(sqla_target, self.sqla_handle.column_name, new_state)
+        self.sqla_handle.dispatch.after_state_change(source=old_state, target=new_state)
 
     def __repr__(self):
         return "<{} meta={!r} instance={!r} function={!r}>".format(
@@ -172,18 +160,18 @@ class BoundFSMFunction(BoundFSMBase):
 class TansitionStateArtithmetics(object):
     """Helper class aiding in merging transition state params."""
 
-    def __init__(self, metaA, metaB):
-        self.metaA = metaA
-        self.metaB = metaB
+    def __init__(self, meta_a, meta_b):
+        self.meta_a = meta_a
+        self.meta_b = meta_b
 
     def source_intersection(self):
         """Returns intersected sources meta sources."""
-        sources_a = self.metaA.sources
-        sources_b = self.metaB.sources
+        sources_a = self.meta_a.sources
+        sources_b = self.meta_b.sources
 
-        if '*' in sources_a:
+        if "*" in sources_a:
             return sources_b
-        elif '*' in sources_b:
+        elif "*" in sources_b:
             return sources_a
         elif sources_a.issuperset(sources_b):
             return sources_a.intersection(sources_b)
@@ -191,8 +179,8 @@ class TansitionStateArtithmetics(object):
             return False
 
     def target_intersection(self):
-        target_a = self.metaA.target
-        target_b = self.metaB.target
+        target_a = self.meta_a.target
+        target_b = self.meta_b.target
         if target_a == target_b:
             # Also covers the case when both are None
             out = target_a
@@ -206,18 +194,18 @@ class TansitionStateArtithmetics(object):
 
     def joint_conditions(self):
         """Returns union of both conditions."""
-        return self.metaA.conditions + self.metaB.conditions
+        return self.meta_a.conditions + self.meta_b.conditions
 
     def joint_args(self):
-        return self.metaA.extra_call_args + self.metaB.extra_call_args
+        return self.meta_a.extra_call_args + self.meta_b.extra_call_args
 
 
-@cache.dictCache
-def InheritedBoundClasses(key):
+@cache.dict_cache
+def inherited_bound_classes(key):
 
     (child_cls, parent_meta) = key
-    
-    def _getSubTransitions(child_cls):
+
+    def _get_sub_transitions(child_cls):
         sub_handlers = []
         for name in dir(child_cls):
             try:
@@ -229,57 +217,54 @@ def InheritedBoundClasses(key):
                 continue
         return sub_handlers
 
-    def _getBoundSubMetas(child_cls, sub_transitions, parent_meta):
+    def _get_bound_sub_metas(child_cls, sub_transitions, parent_meta):
         out = []
 
-        for (name, transition) in sub_transitions:
+        for (_name, transition) in sub_transitions:
             sub_meta = transition._sa_fsm_meta
             arithmetics = TansitionStateArtithmetics(parent_meta, sub_meta)
 
             sub_sources = arithmetics.source_intersection()
             if not sub_sources:
                 raise exc.SetupError(
-                    'Source state superset {super} '
-                    'and subset {sub} are not compatable'.format(
-                        super=parent_meta.sources,
-                        sub=sub_meta.sources
+                    "Source state superset {super} "
+                    "and subset {sub} are not compatable".format(
+                        super=parent_meta.sources, sub=sub_meta.sources
                     )
                 )
 
             sub_target = arithmetics.target_intersection()
             if not sub_target:
                 raise exc.SetupError(
-                    'Targets {super} and {sub} are not compatable'.format(
-                        super=parent_meta.target,
-                        sub=sub_meta.target
+                    "Targets {super} and {sub} are not compatable".format(
+                        super=parent_meta.target, sub=sub_meta.target
                     )
                 )
 
             merged_sub_meta = meta.FSMMeta(
-                sub_sources, sub_target,
+                sub_sources,
+                sub_target,
                 arithmetics.joint_conditions(),
                 arithmetics.joint_args(),
-                sub_meta.bound_cls
+                sub_meta.bound_cls,
             )
             out.append((merged_sub_meta, transition._sa_fsm_transition_fn))
 
         return out
 
     out_cls = type(
-        '{}::sqlalchemy_handle'.format(
+        "{}::sqlalchemy_handle".format(
             child_cls.__name__,
         ),
-        (child_cls, ),
+        (child_cls,),
         {
-            '_sa_fsm_sqlalchemy_handle': None,
-            '_sa_fsm_sqlalchemy_metas': (),
-        }
+            "_sa_fsm_sqlalchemy_handle": None,
+            "_sa_fsm_sqlalchemy_metas": (),
+        },
     )
-    sub_transitions = _getSubTransitions(out_cls)
+    sub_transitions = _get_sub_transitions(out_cls)
     out_cls._sa_fsm_sqlalchemy_metas = tuple(
-        _getBoundSubMetas(
-            out_cls, sub_transitions, parent_meta
-        )
+        _get_bound_sub_metas(out_cls, sub_transitions, parent_meta)
     )
 
     return out_cls
@@ -287,25 +272,19 @@ def InheritedBoundClasses(key):
 
 class BoundFSMClass(BoundFSMBase):
 
-    __slots__ = BoundFSMBase.__slots__ + ("bound_sub_metas", )
+    __slots__ = BoundFSMBase.__slots__ + ("bound_sub_metas",)
 
     def __init__(self, meta, sqlalchemy_handle, child_cls, extra_call_args):
-        super(BoundFSMClass, self).__init__(
-            meta, sqlalchemy_handle, extra_call_args
-        )
-        child_cls = InheritedBoundClasses.getValue((child_cls, meta))
+        super().__init__(meta, sqlalchemy_handle, extra_call_args)
+        child_cls = inherited_bound_classes.get_value((child_cls, meta))
         child_object = child_cls()
         child_object._sa_fsm_sqlalchemy_handle = sqlalchemy_handle
         self.bound_sub_metas = [
-            meta.get_bound(
-                sqlalchemy_handle,
-                set_fn,
-                (child_object, )
-            )
+            meta.get_bound(sqlalchemy_handle, set_fn, (child_object,))
             for (meta, set_fn) in child_object._sa_fsm_sqlalchemy_metas
         ]
 
-    @cache.caching_attr
+    @cache.CachingAttr
     def target_state(self):
         targets = tuple(set(meta.meta.target for meta in self.bound_sub_metas))
         assert len(targets) == 1, "One and just one target expected"
@@ -322,14 +301,13 @@ class BoundFSMClass(BoundFSMBase):
 
     def to_next_state(self, args, kwargs):
         can_transition_with = [
-            sub for sub in self.bound_sub_metas
+            sub
+            for sub in self.bound_sub_metas
             if sub.transition_possible() and sub.conditions_met(args, kwargs)
         ]
         if len(can_transition_with) > 1:
             raise exc.SetupError(
-                "Can transition with multiple handlers ({})".format(
-                    can_transition_with
-                )
+                "Can transition with multiple handlers ({})".format(can_transition_with)
             )
         else:
             assert can_transition_with

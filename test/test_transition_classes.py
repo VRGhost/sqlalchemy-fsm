@@ -1,101 +1,93 @@
-import unittest
-import sqlalchemy
 import pytest
+import sqlalchemy
 
 from sqlalchemy_fsm import FSMField, transition
-from sqlalchemy_fsm.exc import (
-    SetupError,
-    PreconditionError,
-    InvalidSourceStateError,
-)
 
-from tests.conftest import Base
+from .conftest import Base
 
 
 # Alternative syntax - separately defined transaction and sqlalchemy classes
 class SeparatePublishHandler(object):
-
-    @transition(source='new')
+    @transition(source="new")
     def do_one(self, instance):
         instance.side_effect = "SeparatePublishHandler::did_one"
 
-    @transition(source='hidden')
+    @transition(source="hidden")
     def do_two(self, instance):
         instance.side_effect = "SeparatePublishHandler::did_two"
 
 
-@transition(target='pre_decorated_publish')
+@transition(target="pre_decorated_publish")
 class SeparateDecoratedPublishHandler(object):
-
-    @transition(source='new')
+    @transition(source="new")
     def do_one(self, instance):
         instance.side_effect = "SeparatePublishHandler::did_one"
 
-    @transition(target='pre_decorated_publish', source='hidden')
+    @transition(target="pre_decorated_publish", source="hidden")
     def do_two(self, instance):
         instance.side_effect = "SeparatePublishHandler::did_two"
 
 
 class AltSyntaxBlogPost(Base):
 
-    __tablename__ = 'AltSyntaxBlogPost'
+    __tablename__ = "AltSyntaxBlogPost"
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
     state = sqlalchemy.Column(FSMField)
     side_effect = sqlalchemy.Column(sqlalchemy.String)
 
     def __init__(self, *args, **kwargs):
-        self.state = 'new'
-        self.side_effect = 'default'
+        self.state = "new"
+        self.side_effect = "default"
         super(AltSyntaxBlogPost, self).__init__(*args, **kwargs)
 
-    @transition(source='new', target='hidden')
+    @transition(source="new", target="hidden")
     def hide(self):
         pass
 
     pre_decorated_publish = SeparateDecoratedPublishHandler
-    post_decorated_publish = transition(target='post_decorated_publish')(
-        SeparatePublishHandler)
+    post_decorated_publish = transition(target="post_decorated_publish")(
+        SeparatePublishHandler
+    )
 
 
 class TestAltSyntaxBlogPost(object):
-
     @pytest.fixture
     def model(self):
         return AltSyntaxBlogPost()
 
     def test_pre_decorated_publish(self, model):
         model.pre_decorated_publish.set()
-        assert model.state == 'pre_decorated_publish'
-        assert model.side_effect == 'SeparatePublishHandler::did_one'
+        assert model.state == "pre_decorated_publish"
+        assert model.side_effect == "SeparatePublishHandler::did_one"
 
     def test_pre_decorated_publish_from_hidden(self, model):
         model.hide.set()
-        assert model.state == 'hidden'
+        assert model.state == "hidden"
         assert model.hide()
         assert not model.pre_decorated_publish()
         model.pre_decorated_publish.set()
-        assert model.state == 'pre_decorated_publish'
+        assert model.state == "pre_decorated_publish"
         assert model.pre_decorated_publish()
-        assert model.side_effect == 'SeparatePublishHandler::did_two'
+        assert model.side_effect == "SeparatePublishHandler::did_two"
 
     def test_post_decorated_from_hidden(self, model):
         model.post_decorated_publish.set()
-        assert model.state == 'post_decorated_publish'
-        assert model.side_effect == 'SeparatePublishHandler::did_one'
+        assert model.state == "post_decorated_publish"
+        assert model.side_effect == "SeparatePublishHandler::did_one"
 
     def test_post_decorated_publish_from_hidden(self, model):
         model.hide.set()
-        assert model.state == 'hidden'
+        assert model.state == "hidden"
         model.post_decorated_publish.set()
-        assert model.state == 'post_decorated_publish'
-        assert model.side_effect == 'SeparatePublishHandler::did_two'
+        assert model.state == "post_decorated_publish"
+        assert model.side_effect == "SeparatePublishHandler::did_two"
 
     def mk_records(self, session, count):
         records = [AltSyntaxBlogPost() for idx in range(10)]
         session.add_all(records)
         return records
 
-    @pytest.mark.parametrize('query_method', ['call', 'is_'])
+    @pytest.mark.parametrize("query_method", ["call", "is_"])
     def test_class_query(self, session, query_method):
         hidden_records = self.mk_records(session, 5)
         pre_decorated_published = self.mk_records(session, 5)
@@ -110,25 +102,23 @@ class TestAltSyntaxBlogPost(object):
         all_ids = [
             el.id
             for el in (
-                hidden_records +
-                pre_decorated_published +
-                post_decorated_published
+                hidden_records + pre_decorated_published + post_decorated_published
             )
         ]
         for (handler, expected_group) in [
-            ('hide', hidden_records),
-            ('pre_decorated_publish', pre_decorated_published),
-            ('post_decorated_publish', post_decorated_published),
+            ("hide", hidden_records),
+            ("pre_decorated_publish", pre_decorated_published),
+            ("post_decorated_publish", post_decorated_published),
         ]:
             expected_ids = set(el.id for el in expected_group)
             attr = getattr(AltSyntaxBlogPost, handler)
 
-            if query_method == 'call':
+            if query_method == "call":
                 attr_filter = {
                     True: attr(),
                     False: ~attr(),
                 }
-            elif query_method == 'is_':
+            elif query_method == "is_":
                 attr_filter = {
                     True: attr.is_(True),
                     False: attr.is_(False),
@@ -136,17 +126,25 @@ class TestAltSyntaxBlogPost(object):
             else:
                 raise NotImplementedError(query_method)
 
-            matching = session.query(AltSyntaxBlogPost).filter(
-                attr_filter[True],
-                AltSyntaxBlogPost.id.in_(all_ids),
-            ).all()
+            matching = (
+                session.query(AltSyntaxBlogPost)
+                .filter(
+                    attr_filter[True],
+                    AltSyntaxBlogPost.id.in_(all_ids),
+                )
+                .all()
+            )
             assert len(matching) == len(expected_group)
             assert set(el.id for el in matching) == expected_ids
 
-            not_matching = session.query(AltSyntaxBlogPost).filter(
-                attr_filter[False],
-                AltSyntaxBlogPost.id.in_(all_ids),
-            ).all()
+            not_matching = (
+                session.query(AltSyntaxBlogPost)
+                .filter(
+                    attr_filter[False],
+                    AltSyntaxBlogPost.id.in_(all_ids),
+                )
+                .all()
+            )
             assert len(not_matching) == (len(all_ids) - len(expected_group))
             assert not expected_ids.intersection(
                 el.id for el in not_matching

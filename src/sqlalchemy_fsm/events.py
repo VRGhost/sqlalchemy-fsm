@@ -1,8 +1,8 @@
-from functools import wraps, partial
-
-from sqlalchemy.orm.instrumentation import register_class
+from functools import partial
 
 import sqlalchemy.orm.events
+
+from sqlalchemy.orm.instrumentation import register_class
 
 
 @sqlalchemy.event.dispatcher
@@ -25,7 +25,7 @@ class InstanceRef(object):
 
     """
 
-    __slots__ = ('target', )
+    __slots__ = ("target",)
 
     def __init__(self, target):
         self.target = target
@@ -53,7 +53,7 @@ class BoundFSMDispatcher(object):
     def __init__(self, instance):
         self.__ref = InstanceRef(instance)
         self.__cls_dispatcher = get_class_bound_dispatcher(type(instance))
-        for fsm_handle in ('before_state_change', 'after_state_change'):
+        for fsm_handle in ("before_state_change", "after_state_change"):
             # Precompute fsm handles
             getattr(self, fsm_handle)
 
@@ -61,4 +61,3 @@ class BoundFSMDispatcher(object):
         handle = partial(getattr(self.__cls_dispatcher, name), self.__ref)
         setattr(self, name, handle)
         return handle
-        

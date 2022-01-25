@@ -4,18 +4,16 @@ from sqlalchemy_fsm import cache
 
 
 class AttrCls(object):
-
     def __init__(self, rv_val):
         self._rvVal = rv_val
 
-    @cache.caching_attr
+    @cache.CachingAttr
     def test(self):
         self._rvVal += 1
         return self._rvVal
 
 
 class TestAttrs(object):
-
     def test_cls(self):
         with pytest.raises(NotImplementedError):
             AttrCls.test

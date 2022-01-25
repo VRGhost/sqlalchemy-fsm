@@ -1,10 +1,13 @@
-pytest>=3.3.2
-pytest-cov>=2.5.1
-pytest-pep8>=1.0.6
-pytest-runner>=3.0
-bump2version>=0.5.7
-m2r>=0.1.12
-coverage==6.2  # Until this is fixed: https://bitbucket.org/ned/coveragepy/issues/578/incomplete-file-path-in-xml-report (breaks codeclimate)
-pytest-benchmark>=3.1.1
+black
+bump2version
+coverage
+flake8
+flake8-bugbear
+flake8-import-order
+pep8-naming
+pytest-benchmark
+pytest-cov
+pytest-runner
+pytest
 
 -r production.txt
