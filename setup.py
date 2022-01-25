@@ -1,34 +1,16 @@
 #!/usr/bin/env python
-import os
-from codecs import open
-from setuptools import setup
 
-THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+import setuptools
 
 
-def get_readme():
-    with open(os.path.join(THIS_DIR, 'README.md'), encoding='utf-8') as fobj:
-        out = fobj.read()
-
-    try:
-        import m2r
-    except ImportError:
-        # must be running on fellow dev computer - no need to do fancy
-        # markdown conversion
-        return out
-    else:
-        # Probably an sqlalchemy-fsm dev environment.
-        #   Might be publishing to pypi.
-        #   Better to perform the conversion
-        return m2r.convert(out)
-
-
-setup(
+setuptools.setup(
     name='sqlalchemy_fsm',
-    packages=['sqlalchemy_fsm'],
+    packages=setuptools.find_packages(where="src"),
+    package_dir={"": "src"},
     py_modules=['sqlalchemy_fsm'],
     description='Finite state machine field for sqlalchemy',
-    long_description=get_readme(),
+    long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
     author='Ilja & Peter',
     author_email='ilja@wise.fish',
     license='MIT',
