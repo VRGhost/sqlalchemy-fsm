@@ -1,5 +1,5 @@
 black
-bump2version
+bump2version==1.0.1
 coverage
 flake8
 flake8-bugbear
