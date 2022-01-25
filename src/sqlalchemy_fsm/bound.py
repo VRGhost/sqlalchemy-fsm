@@ -75,7 +75,7 @@ class BoundFSMFunction(BoundFSMBase):
     __slots__ = BoundFSMBase.__slots__ + ("set_func", "my_args")
 
     def __init__(self, meta, sqla_handle, set_func, extra_call_args):
-        super(BoundFSMFunction, self).__init__(meta, sqla_handle, extra_call_args)
+        super().__init__(meta, sqla_handle, extra_call_args)
         self.set_func = set_func
         self.my_args = (
             self.meta.extra_call_args
@@ -275,7 +275,7 @@ class BoundFSMClass(BoundFSMBase):
     __slots__ = BoundFSMBase.__slots__ + ("bound_sub_metas",)
 
     def __init__(self, meta, sqlalchemy_handle, child_cls, extra_call_args):
-        super(BoundFSMClass, self).__init__(meta, sqlalchemy_handle, extra_call_args)
+        super().__init__(meta, sqlalchemy_handle, extra_call_args)
         child_cls = inherited_bound_classes.get_value((child_cls, meta))
         child_object = child_cls()
         child_object._sa_fsm_sqlalchemy_handle = sqlalchemy_handle

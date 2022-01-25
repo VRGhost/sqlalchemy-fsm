@@ -1,6 +1,6 @@
 """FSM meta object."""
 
-import collections
+import collections.abc
 
 from . import util
 
@@ -29,7 +29,7 @@ class FSMMeta(object):
 
         if util.is_valid_source_state(source):
             all_sources = (source,)
-        elif isinstance(source, collections.Iterable):
+        elif isinstance(source, collections.abc.Iterable):
             all_sources = tuple(source)
 
             if not all(util.is_valid_source_state(el) for el in all_sources):
