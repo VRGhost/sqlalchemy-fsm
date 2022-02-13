@@ -8,6 +8,6 @@ pep8-naming
 pytest-benchmark
 pytest-cov
 pytest-runner
-pytest
+pytest==7.0.1
 
 -r production.txt
