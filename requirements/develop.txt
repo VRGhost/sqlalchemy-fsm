@@ -7,7 +7,7 @@ flake8-import-order
 pep8-naming
 pytest-benchmark
 pytest-cov
-pytest-runner
+pytest-runner==6.0.0
 pytest
 
 -r production.txt
