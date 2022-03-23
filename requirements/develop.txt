@@ -2,7 +2,7 @@ black
 bump2version
 coverage
 flake8
-flake8-bugbear
+flake8-bugbear==22.3.23
 flake8-import-order
 pep8-naming
 pytest-benchmark
