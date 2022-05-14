@@ -1,6 +1,6 @@
 black
 bump2version
-coverage
+coverage==6.3.3
 flake8
 flake8-bugbear
 flake8-import-order
