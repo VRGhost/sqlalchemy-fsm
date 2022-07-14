@@ -1,7 +1,5 @@
 [![PyPI version](https://badge.fury.io/py/sqlalchemy-fsm.svg)](https://badge.fury.io/py/sqlalchemy-fsm)
 [![Build Status](https://travis-ci.org/VRGhost/sqlalchemy-fsm.svg?branch=master)](https://travis-ci.org/VRGhost/sqlalchemy-fsm)
-[![Maintainability](https://api.codeclimate.com/v1/badges/2a70f885d37f7fbb3287/maintainability)](https://codeclimate.com/github/VRGhost/sqlalchemy-fsm/maintainability)
-[![Test Coverage](https://api.codeclimate.com/v1/badges/2a70f885d37f7fbb3287/test_coverage)](https://codeclimate.com/github/VRGhost/sqlalchemy-fsm/test_coverage)
 
 Finite state machine field for sqlalchemy
 ==============================================================
