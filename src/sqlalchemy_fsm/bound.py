@@ -284,7 +284,7 @@ class BoundFSMClass(BoundFSMBase):
             for (meta, set_fn) in child_object._sa_fsm_sqlalchemy_metas
         ]
         self._target_cached = None
-    
+
     @property
     def target_state(self):
         if self._target_cached is None:
