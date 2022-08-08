@@ -272,7 +272,7 @@ def inherited_bound_classes(key):
 
 class BoundFSMClass(BoundFSMBase):
 
-    __slots__ = BoundFSMBase.__slots__ + ("bound_sub_metas",)
+    __slots__ = BoundFSMBase.__slots__ + ("bound_sub_metas", "_target_cached")
 
     def __init__(self, meta, sqlalchemy_handle, child_cls, extra_call_args):
         super().__init__(meta, sqlalchemy_handle, extra_call_args)
@@ -283,12 +283,15 @@ class BoundFSMClass(BoundFSMBase):
             meta.get_bound(sqlalchemy_handle, set_fn, (child_object,))
             for (meta, set_fn) in child_object._sa_fsm_sqlalchemy_metas
         ]
+        self._target_cached = None
 
-    @cache.CachingAttr
+    @property
     def target_state(self):
-        targets = tuple(set(meta.meta.target for meta in self.bound_sub_metas))
-        assert len(targets) == 1, "One and just one target expected"
-        return targets[0]
+        if self._target_cached is None:
+            targets = tuple(set(meta.meta.target for meta in self.bound_sub_metas))
+            assert len(targets) == 1, "One and just one target expected"
+            self._target_cached = targets[0]
+        return self._target_cached
 
     def transition_possible(self):
         return any(sub.transition_possible() for sub in self.bound_sub_metas)
