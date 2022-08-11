@@ -1,11 +1,13 @@
 """ Transition decorator. """
+import abc
+import typing
 import inspect as py_inspect
 import warnings
 
 from sqlalchemy.ext.hybrid import HYBRID_METHOD
 from sqlalchemy.orm.interfaces import InspectionAttrInfo
 
-from . import bound, cache, exc
+from . import bound, cache, exc, state_machine
 from .meta import FSMMeta
 
 
@@ -20,20 +22,41 @@ def sql_equality_cache(key):
     return column == target
 
 
-class ClassBoundFsmTransition(object):
+class BoundTransitionABC(abc.ABC):
+    """Abstract class controlling interfaces provided by bound transition objects."""
+
+    @abc.abstractproperty
+    def transition(self) -> state_machine.FSMStateTransition:
+        """Particular state this transition targets"""
+        raise NotImplementedError
+
+    @abc.abstractproperty
+    def state_machine(self) -> state_machine.FiniteStateMachine:
+        """Top-level state machine"""
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError
+
+
+class ClassBoundFsmTransition(BoundTransitionABC):
 
     __slots__ = (
-        "_sa_fsm_meta",
         "_sa_fsm_owner_cls",
-        "_sa_fsm_sqla_handle",
-        "_sa_fsm_transition_fn",
+        "state_machine",
+        "transition",
     )
 
-    def __init__(self, meta, sqla_handle, paylaod_func, owner_cls):
-        self._sa_fsm_meta = meta
+    def __init__(
+        self,
+        state_machine: state_machine.FiniteStateMachine,
+        transition: state_machine.FSMStateTransition,
+        owner_cls,
+    ):
         self._sa_fsm_owner_cls = owner_cls
-        self._sa_fsm_sqla_handle = sqla_handle
-        self._sa_fsm_transition_fn = paylaod_func
+        self.state_machine = state_machine
+        self.transition = transition
 
     def __call__(self):
         """Return a SQLAlchemy filter for this particular state."""
@@ -51,19 +74,23 @@ class ClassBoundFsmTransition(object):
         return out
 
 
-class InstanceBoundFsmTransition(object):
+class InstanceBoundFsmTransition(BoundTransitionABC):
 
-    __slots__ = ClassBoundFsmTransition.__slots__ + (
-        "_sa_fsm_self",
-        "_sa_fsm_bound_meta",
-    )
+    __slots__ = ClassBoundFsmTransition.__slots__ + ("_sa_fsm_self",)
 
-    def __init__(self, meta, sqla_handle, transition_fn, owner_cls, instance):
-        self._sa_fsm_meta = meta
-        self._sa_fsm_transition_fn = transition_fn
+    def __init__(
+        self,
+        cls_state_machine: state_machine.FiniteStateMachine,
+        transition: state_machine.FSMStateTransition,
+        owner_cls,
+        instance,
+    ):
+        self.state_machine = state_machine.InstanceBoundStateMachine(
+            cls_state_machine, instance
+        )
+        self.transition = transition
         self._sa_fsm_owner_cls = owner_cls
         self._sa_fsm_self = instance
-        self._sa_fsm_bound_meta = meta.get_bound(sqla_handle, transition_fn, ())
 
     def __call__(self):
         """Check if this is the current state of the object."""
@@ -98,38 +125,42 @@ class FsmTransition(InspectionAttrInfo):
     extension_type = HYBRID_METHOD
     _sa_fsm_is_transition = True
 
-    def __init__(self, meta, set_function):
-        self.meta = meta
-        self.set_fn = set_function
+    meta: FSMMeta
 
-    def __get__(self, instance, owner):
+    def __init__(self, meta):
+        self.meta = meta
+
+    def __get__(self, instance, owner) -> BoundTransitionABC:
         try:
-            sql_alchemy_handle = owner._sa_fsm_sqlalchemy_handle
+            fsm_machine_root = owner._sa_fsm_sqlalchemy_handle
         except AttributeError:
             # Owner class is not bound to sqlalchemy handle object
-            sql_alchemy_handle = bound.SqlAlchemyHandle(owner, instance)
+            fsm_machine_root = state_machine.FiniteStateMachine(owner)
+            owner._sa_fsm_sqlalchemy_handle = fsm_machine_root
 
+        fsm_transition = fsm_machine_root.register_transition(self.meta)
+        
         if instance is None:
-            return ClassBoundFsmTransition(
-                self.meta, sql_alchemy_handle, self.set_fn, owner
-            )
+            return ClassBoundFsmTransition(fsm_machine_root, fsm_transition, owner)
         else:
             return InstanceBoundFsmTransition(
-                self.meta, sql_alchemy_handle, self.set_fn, owner, instance
+                fsm_machine_root, fsm_transition, owner, instance
             )
 
 
 def transition(source="*", target=None, conditions=()):
     def inner_transition(subject):
-
+        print(globals())
         if py_inspect.isfunction(subject):
-            meta = FSMMeta(source, target, conditions, (), bound.BoundFSMFunction)
+            meta = FSMMeta(
+                source, target, conditions, (), bound.BoundFSMFunction, subject
+            )
         elif py_inspect.isclass(subject):
             # Assume a class with multiple handles for various source states
-            meta = FSMMeta(source, target, conditions, (), bound.BoundFSMClass)
+            meta = FSMMeta(source, target, conditions, (), bound.BoundFSMClass, subject)
         else:
-            raise NotImplementedError("Do not know how to {!r}".format(subject))
+            raise NotImplementedError(f"Do not know how to {subject!r}")
 
-        return FsmTransition(meta, subject)
+        return FsmTransition(meta)
 
     return inner_transition

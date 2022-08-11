@@ -86,6 +86,10 @@ class TestMultiSourceBlogPost(object):
     def model(self):
         return MultiSourceBlogPost()
 
+    def test_reachable_publish(self, model):
+        assert model.publish.list_reachable(1) == {"published"}
+        assert model.publish.list_reachable(2) == {"published"}
+
     def test_transition_one(self, model):
         assert model.publish.can_proceed(1)
 

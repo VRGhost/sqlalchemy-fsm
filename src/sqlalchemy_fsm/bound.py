@@ -1,55 +1,17 @@
 """
 Non-meta objects that are bound to a particular table & sqlalchemy instance.
 """
+import abc
 
 import inspect as py_inspect
 import warnings
 
-from sqlalchemy import inspect as sqla_inspect
-
 
 from . import cache, events, exc, meta
-from .sqltypes import FSMField
 
 
-@cache.weak_value_cache
-def column_cache(table_class):
-    fsm_fields = [
-        col
-        for col in sqla_inspect(table_class).columns
-        if isinstance(col.type, FSMField)
-    ]
-
-    if len(fsm_fields) == 0:
-        raise exc.SetupError("No FSMField found in model")
-    elif len(fsm_fields) > 1:
-        raise exc.SetupError(
-            "More than one FSMField found in model ({})".format(fsm_fields)
-        )
-    return fsm_fields[0]
-
-
-class SqlAlchemyHandle(object):
-
-    __slots__ = (
-        "table_class",
-        "record",
-        "fsm_column",
-        "dispatch",
-        "column_name",
-    )
-
-    def __init__(self, table_class, table_record_instance=None):
-        self.table_class = table_class
-        self.record = table_record_instance
-        self.fsm_column = column_cache.get_value(table_class)
-        self.column_name = self.fsm_column.name
-
-        if table_record_instance:
-            self.dispatch = events.BoundFSMDispatcher(table_record_instance)
-
-
-class BoundFSMBase(object):
+class BoundFSMBase(abc.ABC):
+    """Base class for both function- and class- bound transition trackers."""
 
     __slots__ = ("meta", "sqla_handle", "extra_call_args")
 
@@ -68,6 +30,24 @@ class BoundFSMBase(object):
 
     def transition_possible(self):
         return ("*" in self.meta.sources) or (self.current_state in self.meta.sources)
+
+    @abc.abstractmethod
+    def conditions_met(self, args, kwargs):
+        """Returns True/False depending on if this state is satisfied with the args & kwargs provided."""
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def to_next_state(self, args, kwargs):
+        """Change the state to the next one (given that args & kwargs satisfy the transition)."""
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_reachable_targets(self, args, kwargs):
+        """Return list of all transitions that can be reached from this state given the args and kwargs.
+
+        Returns an iterable of reachable BoundFSMFunction
+        """
+        raise NotImplementedError
 
 
 class BoundFSMFunction(BoundFSMBase):
@@ -147,6 +127,12 @@ class BoundFSMFunction(BoundFSMBase):
         self.set_func(*args, **kwargs)
         setattr(sqla_target, self.sqla_handle.column_name, new_state)
         self.sqla_handle.dispatch.after_state_change(source=old_state, target=new_state)
+
+    def get_reachable_targets(self, args, kwargs):
+        out = []
+        if self.conditions_met(args, kwargs):
+            out.append(self)
+        return out
 
     def __repr__(self):
         return "<{} meta={!r} instance={!r} function={!r}>".format(
@@ -271,6 +257,7 @@ def inherited_bound_classes(key):
 
 
 class BoundFSMClass(BoundFSMBase):
+    """Instances of this class track the whole set of defined transitions."""
 
     __slots__ = BoundFSMBase.__slots__ + ("bound_sub_metas", "_target_cached")
 
@@ -300,6 +287,13 @@ class BoundFSMClass(BoundFSMBase):
         return any(
             sub.transition_possible() and sub.conditions_met(args, kwargs)
             for sub in self.bound_sub_metas
+        )
+
+    def get_reachable_targets(self, args, kwargs):
+        return tuple(
+            sub
+            for sub in self.bound_sub_metas
+            if sub.transition_possible() and sub.conditions_met(args, kwargs)
         )
 
     def to_next_state(self, args, kwargs):

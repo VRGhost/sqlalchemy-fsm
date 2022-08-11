@@ -44,6 +44,7 @@ class TestFSMField(object):
 
     def test_initial_state_instatiated(self, model):
         assert model.state == "new"
+        assert model.moderated.state_machine.current_state.value == "new"
 
     def test_meta_attached(self, model):
         assert model.published._sa_fsm_meta
@@ -222,3 +223,7 @@ class TestNullSource(object):
         assert model.status == "published"
         model.end_from_all.set()
         assert model.status == "end"
+
+    def test_reachable(self, model):
+        assert model.new_from_none.list_reachable() == {"new"}
+        assert model.pub_from_either.list_reachable() == {"published"}
